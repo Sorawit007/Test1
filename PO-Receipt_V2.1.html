@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMI - PO Receipt Multi-PO V2.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .bg-wmi-teal { background-color: #008080; }
+        .bg-phyathai-green { background-color: #228B22; }
+        .text-wmi-teal { color: #008080; }
+        .input-readonly { background-color: #f3f4f6; cursor: not-allowed; }
+        .tab-active { border-bottom: 4px solid #008080; color: #008080; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+    <header class="bg-wmi-teal text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold"><i class="fa-solid fa-layer-group mr-2"></i> WMI - MULTI PO RECEIPT</h1>
+            <span class="text-sm">User: Sorawit_Admin | <span id="sys-date"></span></span>
+        </div>
+    </header>
+
+    <main class="container mx-auto py-6 px-4">
+        
+        <section class="bg-white rounded-lg shadow-md p-6 mb-6 border-t-4 border-wmi-teal">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div>
+                    <label class="block text-sm font-bold mb-1">Supplier Name *</label>
+                    <select id="supplier-select" class="w-full p-2 border border-gray-300 rounded outline-none" onchange="handleSupplierChange()">
+                        <option value="">-- เลือกผู้ขาย --</option>
+                        <option value="Zuellig Pharma">Zuellig Pharma จำกัด</option>
+                        <option value="DKSH Thailand">DKSH (Thailand) จำกัด</option>
+                        <option value="บริษัทยาไทย">บริษัทยาไทย จำกัด</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1">Select PO Number *</label>
+                    <div class="flex gap-2">
+                        <select id="po-select" class="flex-1 p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-teal-500">
+                            <option value="">-- เลือก PO --</option>
+                        </select>
+                        <button onclick="addPOTab()" class="bg-wmi-teal text-white px-3 rounded hover:bg-teal-700 transition">
+                            <i class="fa-solid fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="selected-po-tags" class="mt-2 flex flex-wrap gap-2">
+                        </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1">Supplier Site *</label>
+                    <input type="text" id="supplier-site" class="w-full p-2 border border-gray-300 rounded input-readonly" readonly>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1">Invoice Number *</label>
+                    <input type="text" id="invoice-no" class="w-full p-2 border border-gray-300 rounded">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1">Invoice Date *</label>
+                    <input type="date" id="invoice-date" class="w-full p-2 border border-gray-300 rounded">
+                </div>
+
+                <div class="flex items-end">
+                    <button onclick="location.reload()" class="text-sm text-red-600 hover:underline"><i class="fa-solid fa-rotate-left mr-1"></i> เริ่มต้นใหม่</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+            <div id="tabs-header" class="flex bg-gray-50 border-b overflow-x-auto">
+                </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead class="bg-gray-100 border-b">
+                        <tr>
+                            <th class="p-3">#</th>
+                            <th class="p-3">Item Code</th>
+                            <th class="p-3">Description</th>
+                            <th class="p-3">Lot</th>
+                            <th class="p-3">Exp Date</th>
+                            <th class="p-3 text-right">Receipt Qty</th>
+                            <th class="p-3">UOM</th>
+                            <th class="p-3 text-right">Total</th>
+                            <th class="p-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="line-body">
+                        <tr><td colspan="9" class="p-8 text-center text-gray-400 italic font-bold">กรุณาเพิ่ม PO เพื่อแสดงรายการสินค้าแยกตาม Tab</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-6 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="w-full md:max-w-2xl bg-white p-4 rounded-lg shadow-md border-l-4 border-gray-400">
+                    <label class="block text-sm font-bold mb-2 text-gray-700">Remark (กรณีมีปัญหาการทำรับ)</label>
+                    <select id="remark-select" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="">-- ปกติ --</option>
+                        <option value="เอกสารไม่ถูกต้อง">เอกสารไม่ถูกต้อง</option>
+                        <option value="ส่งสินค้าไม่ครบตามเอกสาร">ส่งสินค้าไม่ครบตามเอกสาร</option>
+                        <option value="สินค้าชำรุด">สินค้าชำรุด</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-4 shrink-0">
+                    <button onclick="saveDraft()" class="bg-gray-500 text-white px-8 py-3 rounded-lg font-bold shadow hover:bg-gray-600 transition min-w-[160px]">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i> Save Draft
+                    </button>
+                    <button onclick="showConfirm()" class="bg-phyathai-green text-white px-8 py-3 rounded-lg font-bold shadow hover:bg-green-700 transition min-w-[160px]">
+                        <i class="fa-solid fa-check-double mr-2"></i> Confirm Receipt
+                    </button>
+                </div>
+            </div>
+
+            <div class="w-full md:max-w-2xl bg-white p-4 rounded-lg shadow-md">
+                <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> History Log
+                </h3>
+                <div id="history-log" class="text-xs space-y-2 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded border border-gray-100">
+                    <p class="text-gray-400 italic">ไม่มีข้อมูลประวัติในขณะนี้</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ข้อมูล Mock Data
+         const poData = [
+            { id: '28110001', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'MS020101', desc: 'ยาพาราเซตามอล 500mg' },
+            { id: '28110002', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'PCVITC01', desc: 'Vitamin C Serum' },
+            { id: '28110003', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'MS020124', desc: 'เข็มเย็บแผล NO.4' },
+            { id: '28110004', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'PIADRE01', desc: 'Adrenaline Injection' },
+            { id: '28110005', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'PEMICON1', desc: 'Miconazole Gel' },
+            { id: '28110006', supplier: 'DKSH Thailand', site: 'SAMUT-PRAKAN', item: 'MS020101', desc: 'Needle Mani SE-TH21' },
+            { id: '28110007', supplier: 'DKSH Thailand', site: 'SAMUT-PRAKAN', item: 'PCVITC05', desc: 'Vitamin C 5% Gel' },
+            { id: '28110008', supplier: 'DKSH Thailand', site: 'SAMUT-PRAKAN', item: 'PEBUDE02', desc: 'Budesonide Inhaler' },
+            { id: '28110009', supplier: 'DKSH Thailand', site: 'SAMUT-PRAKAN', item: 'PEFLIX01', desc: 'Flixonase Spray' },
+            { id: '28110010', supplier: 'DKSH Thailand', site: 'SAMUT-PRAKAN', item: 'PEMIACA2', desc: 'Miacalcic Nasal' },
+            { id: '28110011', supplier: 'Diethelm', site: 'CHONBURI', item: 'MS020101', desc: 'Needle Mani SE-TH21' },
+            { id: '28110012', supplier: 'Diethelm', site: 'CHONBURI', item: 'MS020201', desc: 'Syringe 150ml' },
+            { id: '28110013', supplier: 'Diethelm', site: 'CHONBURI', item: 'MS020127', desc: 'เข็มใบหน้า 0.18mm' },
+            { id: '28110014', supplier: 'Diethelm', site: 'CHONBURI', item: 'MS020316', desc: 'ถุงมือไนไตร Size S' },
+            { id: '28110015', supplier: 'Diethelm', site: 'CHONBURI', item: 'MS020317', desc: 'ถุงมือไนไตร Size M' },
+            { id: '28110016', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PCVITC1B', desc: 'Vitamin C Gel 1 Lit' },
+            { id: '28110017', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PEFLUCO1', desc: 'Fluconazole Drop' },
+            { id: '28110018', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PEMILTE1', desc: 'Miltear Eye Drop' },
+            { id: '28110019', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PEMOMET1', desc: 'Mometasone 140' },
+            { id: '28110020', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PEMYBAC2', desc: 'Mybacin Cool Mint' },
+            { id: '28110021', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PIADENS1', desc: 'Adenosine Inj' },
+            { id: '28110022', supplier: 'บริษัทยาไทย', site: 'AYUTTHAYA', item: 'PIANTIG1', desc: 'Green Pit Viper Serum' },
+            { id: '28110023', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'MS020222', desc: 'Test Item 23' },
+            { id: '28110024', supplier: 'Zuellig Pharma', site: 'BANGKOK-HQ', item: 'MS020223', desc: 'Test Item 24' },
+            { id: '28110025', supplier: 'DKSH Thailand', site: 'SAMUT-PRAKAN', item: 'MS020224', desc: 'Test Item 25' }
+        ];
+
+        let selectedPOs = []; // เก็บ PO ที่เพิ่มเข้ามา
+        let activeTab = null;
+
+        function handleSupplierChange() {
+            const sup = document.getElementById('supplier-select').value;
+            const poSelect = document.getElementById('po-select');
+            poSelect.innerHTML = '<option value="">-- เลือก PO --</option>';
+            
+            const filtered = poData.filter(p => p.supplier === sup);
+            filtered.forEach(p => {
+                poSelect.innerHTML += `<option value="${p.id}">${p.id}</option>`;
+            });
+            document.getElementById('supplier-site').value = filtered.length > 0 ? filtered[0].site : '';
+        }
+         function saveDraft() {
+            const logDiv = document.getElementById('history-log');
+            if (logDiv.innerHTML.includes('ไม่มีข้อมูลประวัติ')) logDiv.innerHTML = '';
+            const entry = document.createElement('div');
+            entry.className = 'border-b pb-1 mb-1 text-gray-700';
+            entry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${document.getElementById('remark-select').value || 'ปกติ'} (โดย: Sorawit_Admin)`;
+            logDiv.prepend(entry);
+            alert('บันทึก Draft สำเร็จ');
+        }
+        // Logic สำคัญ: การเพิ่ม Tab PO
+        function addPOTab() {
+            const poId = document.getElementById('po-select').value;
+            if (!poId) return alert('กรุณาเลือก PO ก่อน');
+            if (selectedPOs.includes(poId)) return alert('PO นี้ถูกเพิ่มไปแล้ว');
+
+            // ล็อก Supplier ทันทีที่แอด PO ใบแรก
+            document.getElementById('supplier-select').disabled = true;
+            document.getElementById('supplier-select').classList.add('input-readonly');
+
+            selectedPOs.push(poId);
+            renderTabs();
+            renderPOTags();
+            switchTab(poId);
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-header');
+            container.innerHTML = '';
+            selectedPOs.forEach(poId => {
+                container.innerHTML += `
+                    <button onclick="switchTab('${poId}')" id="btn-tab-${poId}" class="px-6 py-3 text-sm transition hover:bg-gray-100 border-r border-gray-200">
+                        PO: ${poId}
+                    </button>
+                `;
+            });
+        }
+
+        function renderPOTags() {
+            const container = document.getElementById('selected-po-tags');
+            container.innerHTML = '';
+            selectedPOs.forEach(poId => {
+                container.innerHTML += `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold border border-blue-200">${poId}</span>`;
+            });
+        }
+
+        function switchTab(poId) {
+            activeTab = poId;
+            // ไฮไลท์ Tab
+            document.querySelectorAll('#tabs-header button').forEach(btn => btn.classList.remove('tab-active', 'bg-white'));
+            document.getElementById(`btn-tab-${poId}`).classList.add('tab-active', 'bg-white');
+
+            // โหลดข้อมูลเข้าตาราง
+            const po = poData.find(p => p.id === poId);
+            const tbody = document.getElementById('line-body');
+            tbody.innerHTML = '';
+            for(let i=1; i<=15; i++) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3">${i}</td>
+                        <td class="p-3 text-blue-600 font-bold">${po.item}</td>
+                        <td class="p-3">${po.desc}</td>
+                        <td class="p-3"><input type="text" placeholder="Lot..." class="w-full border border-orange-300 rounded p-1"></td>
+                        <td class="p-3"><input type="date" class="w-full border border-orange-300 rounded p-1"></td>
+                        <td class="p-3 text-right"><input type="number" value="10" class="w-20 text-right border rounded p-1"></td>
+                        <td class="p-3 text-gray-500 font-bold">Pack</td>
+                        <td class="p-3 text-right font-bold">500.00</td>
+                        <td class="p-3 text-center"><button onclick="this.parentElement.parentElement.remove()" class="text-red-500"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                `;
+            }
+        }
+
+        function showConfirm() {
+            if (selectedPOs.length === 0) return alert('กรุณาเพิ่มอย่างน้อย 1 PO');
+            const conf = confirm(`ยืนยันการทำ Receipt สำหรับ PO ทั้งหมด: ${selectedPOs.join(', ')} ?`);
+            if (conf) { alert('Interface to Oracle EBS Successful!'); location.reload(); }
+        }
+
+        document.getElementById('sys-date').innerText = new Date().toLocaleDateString('th-TH');
+    </script>
+</body>
+</html>
